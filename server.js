@@ -31,7 +31,7 @@ const addRoleQuestions = [
     },
     {
         type: 'number',
-        name: 'salaryAmt',
+        name: 'salaryAmount',
         message: 'What is the salary of the role?\n'
     }
 ]
@@ -41,13 +41,13 @@ const menuQuestions = [
         type:'list',
         name: 'menuChoice',
         message: 'Please select a choice',
-        choices: ['View All Employees', 
-                  'Add Employee', 
+        choices: ['View All Employees', //COMPLETED
+                  'Add Employee', //COMPLETED
                   'Update Employee Role', 
-                  'View All Roles',
+                  'View All Roles', //COMPLETED
                   'Add Role',
-                  'View All Departments',
-                  'Add Department',
+                  'View All Departments',//COMPLETED
+                  'Add Department',//COMPLETED
                   'Quit']
     }
 ]
@@ -97,6 +97,7 @@ const viewEmployees = () =>{
 
 }
 
+//ADD EMPLOYEES - COMPLETED
 const addEmployee = () =>{
 
     inquirer.prompt(addEmployeeQuestions)
@@ -153,6 +154,43 @@ const addEmployee = () =>{
             });
         });
     });
+};
+
+//addRole - COMPLETED
+const addRole= () =>{
+    inquirer.prompt(addRoleQuestions)
+    .then(({roleName, salaryAmount})=>{
+        console.log(salaryAmount);
+        console.log(typeof salaryAmount)
+        mysql.query(`SELECT name, id FROM department`, (err, result) =>{
+            if(err){
+                console.log(err);
+                return;
+            }
+            const currentDepartments = result.map(({name,id})=>({name, value: id}));
+
+            inquirer.prompt([
+                {
+                type: 'list',
+                name: 'department',
+                message: 'What department does this role belong to?',
+                choices: currentDepartments
+                }
+            ])
+            .then(({department})=>{
+                console.log(department)
+                mysql.query(`INSERT INTO role (title, salary, department_id)
+                VALUES ('${roleName}', '${salaryAmount}', ${department})`, (err, result)=>{
+                    if(err){
+                        console.log(err);
+                        return;
+                    }
+                    console.log(`${roleName} has been added to the roles!`);
+                    printMenu();
+                });
+            });
+        });
+    });
 }
 
 const menuRouter = (response) =>{
@@ -169,6 +207,7 @@ const menuRouter = (response) =>{
             viewRoles();
             break;
         case 'Add Role':
+            addRole();
             break;
         case 'View All Departments':
             viewDepartment();
