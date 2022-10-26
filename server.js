@@ -2,13 +2,37 @@ const inquirer = require('inquirer');
 const mysql = require('./config/connection');
 require('console.table');
 
-//mysql.promise().query('SELECT * FROM role').then(res=>{console.log(res[0])});
-
 const addDepartmentQuestions = [
     {
         type: 'input',
         name: 'departmentName',
-        message: 'What is the name of the department?\n\n'
+        message: 'What is the name of the department?\n'
+    }
+]
+
+const addEmployeeQuestions = [
+    {
+        type: 'input',
+        name: 'firstName',
+        message: 'Please enter the employee first name \n'
+    },
+    {
+        type: 'input',
+        name: 'lastName',
+        message: 'Please enter the employee last name. \n'
+    }
+]
+
+const addRoleQuestions = [
+    {
+        type: 'input',
+        name: 'roleName',
+        message: 'What is the name of the role?\n'
+    },
+    {
+        type: 'number',
+        name: 'salaryAmt',
+        message: 'What is the salary of the role?\n'
     }
 ]
 
@@ -28,29 +52,121 @@ const menuQuestions = [
     }
 ]
 
-
+//ADD DEPARTMENT - COMPLETED
 const addDepartment = () =>{
     inquirer
         .prompt(addDepartmentQuestions)
         .then(({departmentName})=>{
             mysql.promise().query(`INSERT INTO department(name)
-            VALUE ('${departmentName}');`).then(res=>{
-                console.log('added dept')
+            VALUE ('${departmentName}');`)
+            .then(res=>{
+                console.log(`Added ${departmentName} to database`);
                 printMenu();
             })
         })
 }
 
+//VIEW DEPARTMENTS - COMPLETED
+const viewDepartment = () =>{
+    mysql.promise().query('SELECT * from department;').then(res=>{
+        console.table(res[0])
+        printMenu()
+    });
+}
+
+//VIEW ROLES - COMPLETED
+const viewRoles = () =>{
+    mysql.promise().query(`SELECT role.id, role.title, department.name as department, role.salary FROM role JOIN department ON role.department_id = department.id; `)
+    .then(res=>{
+        console.table(res[0])
+        printMenu()
+    });
+}
+
+//VIEW EMPLOYEES - COMPLETED
+const viewEmployees = () =>{
+    mysql.promise().query(`SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, CONCAT (manager.first_name, " ", manager.last_name) AS manager 
+                          FROM employee
+                          LEFT JOIN role ON employee.role_id = role.id 
+                          LEFT JOIN department ON role.department_id = department.id 
+                          LEFT JOIN employee manager ON employee.manager_id = manager.id`)
+    .then(res =>{
+        console.table(res[0]);
+        printMenu();
+    });
+
+}
+
+const addEmployee = () =>{
+
+    inquirer.prompt(addEmployeeQuestions)
+
+    .then(({firstName, lastName})=>{
+        
+        console.log(firstName, lastName)
+        mysql.query(`SELECT role.id, role.title FROM role`, (err, results) =>{
+            if (err){
+                console.log(err);
+                return;
+            }
+            const employeeRoles = results.map(({ id, title }) => ({ name: title, value: id }));
+            inquirer.prompt([
+                {
+                    type: 'list',
+                    name: 'newEmployeeRole',
+                    message: 'Please select a role for this employee',
+                    choices: employeeRoles
+                }
+            ])
+            .then((result)=>{
+                const employeeRoleId = result.newEmployeeRole;
+
+                mysql.query('SELECT * FROM employee', (err, results)=>{
+                    if(err){
+                        console.log(err);
+                        return;
+                    }
+                    const managerList = results.map(({id, first_name, last_name})=>({name: `${first_name} ${last_name}`, value: id}));
+                    inquirer.prompt([
+                        {
+                            type:'list',
+                            name: 'newEmployeeManager',
+                            message: 'Please select the new employee\'s manager. \n',
+                            choices: managerList
+                        }
+                    ])
+                    .then((result=>{
+                        const managerId = result.newEmployeeManager;
+                        console.log(managerId)
+
+                        mysql.query(`INSERT INTO employee (first_name, last_name, role_id, manager_id) 
+                        VALUES ('${firstName}', '${lastName}', ${employeeRoleId}, ${managerId})`, (err, result) =>{
+                            if(err){
+                                console.log(err);
+                                return;
+                            }
+                            console.log(`New Employee: ${firstName} ${lastName} has been added!`);
+                            printMenu();
+                        });
+                    }));
+                });
+            });
+        });
+    });
+}
+
 const menuRouter = (response) =>{
     switch(response.menuChoice){
         case 'View All Employees':
+            viewEmployees();
             break;
         case 'Add Employee':
-            console.log('I work');
+            addEmployee();
             break;
         case 'Update Employee Role':
             break;
         case 'View All Roles':
+            viewRoles();
             break;
         case 'Add Role':
             break;
@@ -66,17 +182,6 @@ const menuRouter = (response) =>{
             break;
     }
 }
-
-//SELECT FROM DEPARTMENTS
-
-const viewDepartment = () =>{
-    mysql.promise().query('SELECT * from department;').then(res=>{
-        console.table(res[0])
-        printMenu()
-    });
-}
-
-//addDepartment();
 
 const printTitle = () =>{
     //title made using https://www.freeformatter.com/javascript-escape.html and https://www.ascii-art-generator.org/
