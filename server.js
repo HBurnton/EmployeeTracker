@@ -41,13 +41,13 @@ const menuQuestions = [
         type:'list',
         name: 'menuChoice',
         message: 'Please select a choice',
-        choices: ['View All Employees', //COMPLETED
-                  'Add Employee', //COMPLETED
+        choices: ['View All Employees', 
+                  'Add Employee',
                   'Update Employee Role', 
-                  'View All Roles', //COMPLETED
+                  'View All Roles', 
                   'Add Role',
-                  'View All Departments',//COMPLETED
-                  'Add Department',//COMPLETED
+                  'View All Departments',
+                  'Add Department',
                   'Quit']
     }
 ]
@@ -57,7 +57,7 @@ const addDepartment = () =>{
     inquirer
         .prompt(addDepartmentQuestions)
         .then(({departmentName})=>{
-            mysql.promise().query(`INSERT INTO department(name)
+            mysql.query(`INSERT INTO department(name)
             VALUE ('${departmentName}');`)
             .then(res=>{
                 console.log(`Added ${departmentName} to database`);
@@ -68,7 +68,7 @@ const addDepartment = () =>{
 
 //VIEW DEPARTMENTS - COMPLETED
 const viewDepartment = () =>{
-    mysql.promise().query('SELECT * from department;').then(res=>{
+    mysql.query('SELECT * from department;').then(res=>{
         console.table(res[0])
         printMenu()
     });
@@ -76,7 +76,8 @@ const viewDepartment = () =>{
 
 //VIEW ROLES - COMPLETED
 const viewRoles = () =>{
-    mysql.promise().query(`SELECT role.id, role.title, department.name as department, role.salary FROM role JOIN department ON role.department_id = department.id; `)
+    mysql.query(`SELECT role.id, role.title, department.name as department, role.salary 
+                FROM role JOIN department ON role.department_id = department.id;`)
     .then(res=>{
         console.table(res[0])
         printMenu()
@@ -85,7 +86,7 @@ const viewRoles = () =>{
 
 //VIEW EMPLOYEES - COMPLETED
 const viewEmployees = () =>{
-    mysql.promise().query(`SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, CONCAT (manager.first_name, " ", manager.last_name) AS manager 
+    mysql.query(`SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, CONCAT (manager.first_name, " ", manager.last_name) AS manager 
                           FROM employee
                           LEFT JOIN role ON employee.role_id = role.id 
                           LEFT JOIN department ON role.department_id = department.id 
@@ -104,7 +105,6 @@ const addEmployee = () =>{
 
     .then(({firstName, lastName})=>{
         
-        console.log(firstName, lastName)
         mysql.query(`SELECT role.id, role.title FROM role`, (err, results) =>{
             if (err){
                 console.log(err);
@@ -138,7 +138,6 @@ const addEmployee = () =>{
                     ])
                     .then((result=>{
                         const managerId = result.newEmployeeManager;
-                        console.log(managerId)
 
                         mysql.query(`INSERT INTO employee (first_name, last_name, role_id, manager_id) 
                         VALUES ('${firstName}', '${lastName}', ${employeeRoleId}, ${managerId})`, (err, result) =>{
@@ -160,8 +159,6 @@ const addEmployee = () =>{
 const addRole= () =>{
     inquirer.prompt(addRoleQuestions)
     .then(({roleName, salaryAmount})=>{
-        console.log(salaryAmount);
-        console.log(typeof salaryAmount)
         mysql.query(`SELECT name, id FROM department`, (err, result) =>{
             if(err){
                 console.log(err);
@@ -178,7 +175,6 @@ const addRole= () =>{
                 }
             ])
             .then(({department})=>{
-                console.log(department)
                 mysql.query(`INSERT INTO role (title, salary, department_id)
                 VALUES ('${roleName}', '${salaryAmount}', ${department})`, (err, result)=>{
                     if(err){
@@ -191,7 +187,55 @@ const addRole= () =>{
             });
         });
     });
-}
+};
+
+//UPDATE EMPLOYEE ROLE - COMPLETED
+const updateEmployeeRole = () =>{
+    mysql.query(`SELECT * from employee`, (err, result) =>{
+        if(err){
+            console.log(err);
+            return;
+        }
+        const currentEmployees = result.map(({id, first_name, last_name}) => ({name: `${first_name} ${last_name}`, value: id}));
+
+        inquirer.prompt([
+            {
+                type: 'list',
+                name: 'selectedEmployee',
+                message: 'Which employee should have their role updated?',
+                choices: currentEmployees
+            }
+        ])
+        .then(({selectedEmployee})=>{
+            mysql.query(`SELECT * FROM role`, (err, result) =>{
+                if (err){
+                    console.log(err);
+                    return;
+                }
+                const currentRoles = result.map(({id, title}) => ({ name: title, value: id}));
+                inquirer.prompt([
+                    {
+                        type: 'list',
+                        name: 'selectionRole',
+                        message: 'What should this employee\'s role be?',
+                        choices: currentRoles,
+                    }
+                ])
+                .then(({selectionRole}) =>{
+                    mysql.query(`UPDATE employee
+                    SET role_id = ${selectionRole} WHERE id = ${selectedEmployee}`, (err, result)=>{
+                        if(err){
+                            console.log(err);
+                            return;
+                        }
+                        console.log('Employee Role Updated');
+                        printMenu();
+                    });
+                });
+            });
+        });
+    });
+};
 
 const menuRouter = (response) =>{
     switch(response.menuChoice){
@@ -202,6 +246,7 @@ const menuRouter = (response) =>{
             addEmployee();
             break;
         case 'Update Employee Role':
+            updateEmployeeRole();
             break;
         case 'View All Roles':
             viewRoles();
