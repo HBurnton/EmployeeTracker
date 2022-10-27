@@ -57,7 +57,7 @@ const addDepartment = () =>{
     inquirer
         .prompt(addDepartmentQuestions)
         .then(({departmentName})=>{
-            mysql.query(`INSERT INTO department(name)
+            mysql.promise().query(`INSERT INTO department(name)
             VALUE ('${departmentName}');`)
             .then(res=>{
                 console.log(`Added ${departmentName} to database`);
@@ -68,7 +68,7 @@ const addDepartment = () =>{
 
 //VIEW DEPARTMENTS - COMPLETED
 const viewDepartment = () =>{
-    mysql.query('SELECT * from department;').then(res=>{
+    mysql.promise().query('SELECT * from department;').then(res=>{
         console.table(res[0])
         printMenu()
     });
@@ -76,7 +76,7 @@ const viewDepartment = () =>{
 
 //VIEW ROLES - COMPLETED
 const viewRoles = () =>{
-    mysql.query(`SELECT role.id, role.title, department.name as department, role.salary 
+    mysql.promise().query(`SELECT role.id, role.title, department.name as department, role.salary 
                 FROM role JOIN department ON role.department_id = department.id;`)
     .then(res=>{
         console.table(res[0])
@@ -86,7 +86,7 @@ const viewRoles = () =>{
 
 //VIEW EMPLOYEES - COMPLETED
 const viewEmployees = () =>{
-    mysql.query(`SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, CONCAT (manager.first_name, " ", manager.last_name) AS manager 
+    mysql.promise().query(`SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, CONCAT (manager.first_name, " ", manager.last_name) AS manager 
                           FROM employee
                           LEFT JOIN role ON employee.role_id = role.id 
                           LEFT JOIN department ON role.department_id = department.id 
