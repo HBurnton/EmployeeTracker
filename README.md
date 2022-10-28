@@ -24,7 +24,7 @@ Upon running ```npm start``` the client is presented with a welcome message and 
 [Please Click Here for Youtube Demo](https://www.youtube.com/watch?v=bb9NI5Mexn8)
 
 * ### Future Development
-    * Converting all queries to promise queries
+    * Converting all queries to promise queries --ATTEMPTED SEE database functions folder still getting the hang of it, feels wrong/too nested
     * Adding validation to inquirer 
     * Separating the functions out into varying files to control the size of this file
     * Add more functions to allow more versatility (to be done and submitted)
