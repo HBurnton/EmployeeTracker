@@ -39,166 +39,157 @@ const addRoleQuestions = [
 
 const menuQuestions = [
     {
-        type:'list',
+        type: 'list',
         name: 'menuChoice',
         message: 'Please select a choice',
-        choices: ['View All Employees', 
-                  'Add Employee',
-                  'Update Employee Role', 
-                  'View All Roles', 
-                  'Add Role',
-                  'View All Departments',
-                  'Add Department',
-                  'Quit']
+        choices: ['View All Employees',
+            'Add Employee',
+            'Update Employee Role',
+            'View All Roles',
+            'Add Role',
+            'View All Departments',
+            'Add Department',
+            'Quit']
     }
 ]
 
 //ADD DEPARTMENT - COMPLETED
-const addDepartment = () =>{
+const addDepartment = () => {
     inquirer
         .prompt(addDepartmentQuestions)
-        .then(({departmentName})=>{
+        .then(({ departmentName }) => {
             mysql.promise().query(`INSERT INTO department(name)
             VALUE ('${departmentName}');`)
-            .then(res=>{
-                console.log(`Added ${departmentName} to database`);
-                printMenu();
-            })
+                .then(res => {
+                    console.log(`Added ${departmentName} to database`);
+                    printMenu();
+                })
         })
 }
 
 //VIEW DEPARTMENTS - COMPLETED
-const viewDepartment = () =>{
-    mysql.promise().query('SELECT * from department;').then(res=>{
+const viewDepartment = () => {
+    mysql.promise().query('SELECT * from department;').then(res => {
         console.table(res[0])
         printMenu()
     });
 }
 
 //VIEW ROLES - COMPLETED
-const viewRoles = () =>{
+const viewRoles = () => {
     mysql.promise().query(`SELECT role.id, role.title, department.name as department, role.salary 
                 FROM role JOIN department ON role.department_id = department.id;`)
-    .then(res=>{
-        console.table(res[0])
-        printMenu()
-    });
+        .then(res => {
+            console.table(res[0])
+            printMenu()
+        });
 }
 
 //VIEW EMPLOYEES - COMPLETED
-const viewEmployees = () =>{
+const viewEmployees = () => {
     mysql.promise().query(`SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, CONCAT (manager.first_name, " ", manager.last_name) AS manager 
                           FROM employee
                           LEFT JOIN role ON employee.role_id = role.id 
                           LEFT JOIN department ON role.department_id = department.id 
                           LEFT JOIN employee manager ON employee.manager_id = manager.id`)
-    .then(res =>{
-        console.table(res[0]);
-        printMenu();
-    });
+        .then(res => {
+            console.table(res[0]);
+            printMenu();
+        });
 
 }
-
-
-const addEmployee = () =>{
-
-    inquirer.prompt(addEmployeeQuestions)
-
-    .then(({firstName, lastName})=>{
-        
-        mysql.query(`SELECT role.id, role.title FROM role`, (err, results) =>{
-            if (err){
-                console.log(err);
-                return;
-            }
-            const employeeRoles = results.map(({ id, title }) => ({ name: title, value: id }));
-            inquirer.prompt([
-                {
-                    type: 'list',
-                    name: 'newEmployeeRole',
-                    message: 'Please select a role for this employee',
-                    choices: employeeRoles
-                }
-            ])
-            .then((result)=>{
-                const employeeRoleId = result.newEmployeeRole;
-
-                mysql.query('SELECT * FROM employee', (err, results)=>{
-                    if(err){
-                        console.log(err);
-                        return;
-                    }
-                    const managerList = results.map(({id, first_name, last_name})=>({name: `${first_name} ${last_name}`, value: id}));
-                    inquirer.prompt([
-                        {
-                            type:'list',
-                            name: 'newEmployeeManager',
-                            message: 'Please select the new employee\'s manager. \n',
-                            choices: managerList
-                        }
-                    ])
-                    .then((result=>{
-                        const managerId = result.newEmployeeManager;
-
-                        mysql.query(`INSERT INTO employee (first_name, last_name, role_id, manager_id) 
-                        VALUES ('${firstName}', '${lastName}', ${employeeRoleId}, ${managerId})`, (err, result) =>{
-                            if(err){
-                                console.log(err);
-                                return;
-                            }
-                            console.log(`New Employee: ${firstName} ${lastName} has been added!`);
-                            printMenu();
-                        });
-                    }));
-                });
-            });
-        });
-    });
-};
-
-
-//addRole - COMPLETED
-const addRole= () =>{
-    inquirer.prompt(addRoleQuestions)
-    .then(({roleName, salaryAmount})=>{
-        mysql.query(`SELECT name, id FROM department`, (err, result) =>{
-            if(err){
-                console.log(err);
-                return;
-            }
-            const currentDepartments = result.map(({name,id})=>({name, value: id}));
-
-            inquirer.prompt([
-                {
-                type: 'list',
-                name: 'department',
-                message: 'What department does this role belong to?',
-                choices: currentDepartments
-                }
-            ])
-            .then(({department})=>{
-                mysql.query(`INSERT INTO role (title, salary, department_id)
-                VALUES ('${roleName}', '${salaryAmount}', ${department})`, (err, result)=>{
-                    if(err){
-                        console.log(err);
-                        return;
-                    }
-                    console.log(`${roleName} has been added to the roles!`);
-                    printMenu();
-                });
-            });
-        });
-    });
-};
-
-//UPDATE EMPLOYEE ROLE - COMPLETED
-const updateEmployeeRole = () =>{
-    mysql.query(`SELECT * from employee`, (err, result) =>{
-        if(err){
+//Cleaned up employee
+const addEmployee2 = () => {
+    let employeeRoles = []
+    let managerList = []
+    mysql.query(`SELECT role.id, role.title FROM role`, (err, results) => {
+        if (err) {
             console.log(err);
             return;
         }
-        const currentEmployees = result.map(({id, first_name, last_name}) => ({name: `${first_name} ${last_name}`, value: id}));
+        employeeRoles = results.map(({ id, title }) => ({ name: title, value: id }));
+        mysql.query('SELECT * FROM employee', (err1, results1) => {
+            if (err1) {
+                console.log(err1);
+                return;
+            }
+            managerList = results1.map(({ id, first_name, last_name }) => ({ name: `${first_name} ${last_name}`, value: id }));
+
+            inquirer.prompt([...addEmployeeQuestions,
+            {
+                type: 'list',
+                name: 'newEmployeeRole',
+                message: 'Please select a role for this employee',
+                choices: employeeRoles
+            },
+            {
+                type: 'list',
+                name: 'newEmployeeManager',
+                message: 'Please select the new employee\'s manager. \n',
+                choices: managerList
+            }
+            ])
+                .then(({ firstName, lastName, newEmployeeRole, newEmployeeManager }) => {
+
+
+                    mysql.query(`INSERT INTO employee (first_name, last_name, role_id, manager_id) 
+                        VALUES ('${firstName}', '${lastName}', ${newEmployeeRole}, ${newEmployeeManager})`, (err, result) => {
+                        if (err) {
+                            console.log(err);
+                            return;
+                        }
+                        console.log(`New Employee: ${firstName} ${lastName} has been added!`);
+                        printMenu();
+                    });
+                })
+        });
+    });
+
+
+}
+
+//addRole - COMPLETED
+const addRole = () => {
+    inquirer.prompt(addRoleQuestions)
+        .then(({ roleName, salaryAmount }) => {
+            mysql.query(`SELECT name, id FROM department`, (err, result) => {
+                if (err) {
+                    console.log(err);
+                    return;
+                }
+                const currentDepartments = result.map(({ name, id }) => ({ name, value: id }));
+
+                inquirer.prompt([
+                    {
+                        type: 'list',
+                        name: 'department',
+                        message: 'What department does this role belong to?',
+                        choices: currentDepartments
+                    }
+                ])
+                    .then(({ department }) => {
+                        mysql.query(`INSERT INTO role (title, salary, department_id)
+                VALUES ('${roleName}', '${salaryAmount}', ${department})`, (err, result) => {
+                            if (err) {
+                                console.log(err);
+                                return;
+                            }
+                            console.log(`${roleName} has been added to the roles!`);
+                            printMenu();
+                        });
+                    });
+            });
+        });
+};
+
+//UPDATE EMPLOYEE ROLE - COMPLETED
+const updateEmployeeRole = () => {
+    mysql.query(`SELECT * from employee`, (err, result) => {
+        if (err) {
+            console.log(err);
+            return;
+        }
+        const currentEmployees = result.map(({ id, first_name, last_name }) => ({ name: `${first_name} ${last_name}`, value: id }));
 
         inquirer.prompt([
             {
@@ -208,45 +199,45 @@ const updateEmployeeRole = () =>{
                 choices: currentEmployees
             }
         ])
-        .then(({selectedEmployee})=>{
-            mysql.query(`SELECT * FROM role`, (err, result) =>{
-                if (err){
-                    console.log(err);
-                    return;
-                }
-                const currentRoles = result.map(({id, title}) => ({ name: title, value: id}));
-                inquirer.prompt([
-                    {
-                        type: 'list',
-                        name: 'selectionRole',
-                        message: 'What should this employee\'s role be?',
-                        choices: currentRoles,
+            .then(({ selectedEmployee }) => {
+                mysql.query(`SELECT * FROM role`, (err, result) => {
+                    if (err) {
+                        console.log(err);
+                        return;
                     }
-                ])
-                .then(({selectionRole}) =>{
-                    mysql.query(`UPDATE employee
-                    SET role_id = ${selectionRole} WHERE id = ${selectedEmployee}`, (err, result)=>{
-                        if(err){
-                            console.log(err);
-                            return;
+                    const currentRoles = result.map(({ id, title }) => ({ name: title, value: id }));
+                    inquirer.prompt([
+                        {
+                            type: 'list',
+                            name: 'selectionRole',
+                            message: 'What should this employee\'s role be?',
+                            choices: currentRoles,
                         }
-                        console.log('Employee Role Updated');
-                        printMenu();
-                    });
+                    ])
+                        .then(({ selectionRole }) => {
+                            mysql.query(`UPDATE employee
+                    SET role_id = ${selectionRole} WHERE id = ${selectedEmployee}`, (err, result) => {
+                                if (err) {
+                                    console.log(err);
+                                    return;
+                                }
+                                console.log('Employee Role Updated');
+                                printMenu();
+                            });
+                        });
                 });
             });
-        });
     });
 };
 
 
-const menuRouter = (response) =>{
-    switch(response.menuChoice){
+const menuRouter = (response) => {
+    switch (response.menuChoice) {
         case 'View All Employees':
             viewEmployees();
             break;
         case 'Add Employee':
-            addEmployee();
+            addEmployee2();
             break;
         case 'Update Employee Role':
             updateEmployeeRole();
@@ -270,18 +261,18 @@ const menuRouter = (response) =>{
     }
 }
 
-const printTitle = () =>{
+const printTitle = () => {
     //title made using https://www.freeformatter.com/javascript-escape.html and https://www.ascii-art-generator.org/
     console.log(" _____                 _                       \r\n| ____|_ __ ___  _ __ | | ___  _   _  ___  ___ \r\n|  _| | \'_ ` _ \\| \'_ \\| |\/ _ \\| | | |\/ _ \\\/ _ \\\r\n| |___| | | | | | |_) | | (_) | |_| |  __\/  __\/\r\n|_____|_| |_| |_| .__\/|_|\\___\/ \\__, |\\___|\\___|\r\n                |_|            |___\/           \r\n __  __                                   \r\n|  \\\/  | __ _ _ __   __ _  __ _  ___ _ __ \r\n| |\\\/| |\/ _` | \'_ \\ \/ _` |\/ _` |\/ _ \\ \'__|\r\n| |  | | (_| | | | | (_| | (_| |  __\/ |   \r\n|_|  |_|\\__,_|_| |_|\\__,_|\\__, |\\___|_|   \r\n                          |___\/           \r\n")
 }
 
-const printMenu = () =>{
+const printMenu = () => {
     inquirer
         .prompt(menuQuestions)
-        .then((response)=>menuRouter(response))
+        .then((response) => menuRouter(response))
 }
 
-const init = () =>{
+const init = () => {
     printTitle();
     printMenu();
 }
